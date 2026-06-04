@@ -6,6 +6,8 @@ var mongoSanitize = require("express-mongo-sanitize");
 var dao = require("./mongo-dao.js");
 var authRoutes = require("./auth-routes.js");
 var { requireAuth } = require("./auth.js");
+var https = require("https");
+var fs = require("fs");
 var app = express();
 
 app.set("trust proxy", 1);
@@ -128,7 +130,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
-const port = process.env.PORT || 4000;
-app.listen(port, () => {
-  console.log(`Open a browser to http://localhost:${port} to view the application`);
+const httpsPort = process.env.PORT || 4000;
+
+const sslOptions = {
+  key: fs.readFileSync("key.pem"),
+  cert: fs.readFileSync("cert.pem"),
+};
+
+https.createServer(sslOptions, app).listen(httpsPort, () => {
+  console.log(`HTTPS server listening on https://localhost:${httpsPort}`);
 });
