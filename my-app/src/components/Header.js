@@ -1,15 +1,46 @@
-import Reach from 'react';
+import React from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../AuthContext";
 
 function Header() {
-    return (
-        <div className='page'>
-            <h1>Star Wars Universe Lookup</h1>
-            <span className='nowrap'>
-                {/* <h3>Who are you looking for?</h3>
-                (Regular expressions are cool here) */}
-            </span>
-        </div>
-    );
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate("/login");
+  }
+
+  return (
+    <div className="page">
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <h1>
+          <Link
+            to="/"
+            style={{ textDecoration: "none", color: "inherit" }}
+          >
+            Star Wars Universe Lookup
+          </Link>
+        </h1>
+        <span className="nowrap">
+          {isAuthenticated ? (
+            <>
+              <span style={{ marginRight: 12 }}>
+                Logged in as <strong>{user?.username}</strong>
+              </span>
+              <button onClick={handleLogout}>Log out</button>
+            </>
+          ) : null}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export default Header;

@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
 const { body, validationResult } = require("express-validator");
 const userDao = require("./user-dao.js");
+const { requireAuth } = require("./auth.js");
 
 const router = express.Router();
 
@@ -15,6 +16,17 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Cookie options used for both setting and clearing the auth cookie.
+// Secure = only sent over HTTPS (turn on in production)
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "strict",
+  secure: false, // set true in production with HTTPS
+  maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  path: "/",
+};
+
+// --- POST /api/auth/register ---
 router.post(
   "/register",
   authLimiter,
@@ -33,18 +45,14 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: errors.array()[0].msg });
     }
-
     const { username, password } = req.body;
-
     try {
       const existing = await userDao.findUserByUsername(username);
       if (existing) {
         return res.status(400).json({ error: "Registration failed" });
       }
-
       const passwordHash = await bcrypt.hash(password, 12);
       await userDao.createUser(username, passwordHash);
-
       res.status(201).json({ message: "User created successfully" });
     } catch (err) {
       console.error("[register]", err);
@@ -53,6 +61,7 @@ router.post(
   }
 );
 
+// --- POST /api/auth/login ---
 router.post(
   "/login",
   authLimiter,
@@ -63,19 +72,15 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: "Invalid input" });
     }
-
     const { username, password } = req.body;
-
     try {
       const user = await userDao.findUserByUsername(username);
-
-      const dummyHash =
-        "$2a$12$CwTycUXWue0Thq9StjUM0uJ8.cKvqEXAMPLEDUMMYHASH..ABCDEF.";
+      const dummyHash = await bcrypt.hash("dummypassword", 12);
       const hashToCompare = user ? user.passwordHash : dummyHash;
       const valid = await bcrypt.compare(password, hashToCompare);
 
       if (!user || !valid) {
-        return res.status(401).json({ error: "Invalid credentials" });
+        return res.status(401).json({ error: "Incorrect username & password" });
       }
 
       const token = jwt.sign(
@@ -90,8 +95,11 @@ router.post(
 
       console.log(`[login] ${user.username} from ${req.ip}`);
 
+      // Set the HttpOnly cookie — browser will auto-send on future requests
+      res.cookie("authToken", token, COOKIE_OPTIONS);
+
+      // Return only user info (token is in the cookie, not the body)
       res.json({
-        token,
         user: { username: user.username, role: user.role },
       });
     } catch (err) {
@@ -100,5 +108,17 @@ router.post(
     }
   }
 );
+
+// --- POST /api/auth/logout ---
+router.post("/logout", (req, res) => {
+  res.clearCookie("authToken", { path: "/" });
+  res.json({ message: "Logged out" });
+});
+
+// --- GET /api/auth/me ---
+// Lets the client check "am I still logged in?" on page load
+router.get("/me", requireAuth, (req, res) => {
+  res.json({ user: { username: req.user.username, role: req.user.role } });
+});
 
 module.exports = router;

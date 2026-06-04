@@ -1,14 +1,15 @@
 const jwt = require("jsonwebtoken");
 
-// Verifies the JWT on incoming requests. Populates req.user if valid.
 function requireAuth(req, res, next) {
-  const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  // Read token from HttpOnly cookie (primary) or Authorization header (fallback)
+  let token = req.cookies?.authToken;
+  if (!token) {
+    const header = req.headers.authorization || "";
+    token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  }
 
   if (!token) {
-    return res
-      .status(401)
-      .json({ error: "Missing or malformed Authorization header" });
+    return res.status(401).json({ error: "Not authenticated" });
   }
 
   try {
@@ -24,7 +25,6 @@ function requireAuth(req, res, next) {
   }
 }
 
-// Use as: app.get('/api/admin/...', requireAuth, requireRole('admin'), handler)
 function requireRole(role) {
   return (req, res, next) => {
     if (!req.user || req.user.role !== role) {

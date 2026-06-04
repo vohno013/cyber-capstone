@@ -1,39 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { api } from "../api";
 
 function Films() {
-  let [film, setFilm] = useState([]);
-
+  let [film, setFilm] = useState({});
   let navigate = useNavigate();
   let params = useParams();
-  let url = "/api";
+
   async function getFilm() {
-    let fetchedFilm = await fetchFilm(params.id);
-    fetchedFilm.planets = await fetchPlanets();
-    fetchedFilm.characters = await fetchCharacters();
+    let fetchedFilm = await api(`/films/${params.id}`);
+    fetchedFilm.planets = await api(`/films/${params.id}/planets`);
+    fetchedFilm.characters = await api(`/films/${params.id}/characters`);
     setFilm(fetchedFilm);
   }
 
-  async function fetchFilm() {
-    let result = await fetch(`${url}/films/${params.id}`);
-    return result.json();
-  }
-
-  const fetchCharacters = async () => {
-    let ret = await fetch(`${url}/films/${params.id}/characters`).then((res) =>
-      res.json()
-    );
-    return ret;
-  };
-
-  const fetchPlanets = async () => {
-    let ret = await fetch(`${url}/films/${params.id}/planets`).then((res) =>
-      res.json()
-    );
-    return ret;
-  };
-
-  useEffect(() => getFilm, []);
+  useEffect(() => {
+    getFilm();
+  }, [params.id]);
 
   function handlePlanetClick(id) {
     navigate(`/planets/${id}`);
@@ -61,9 +44,13 @@ function Films() {
         <section id="characters">
           <h2>Appearing Characters:</h2>
           <ul>
-          {film.characters
+            {film.characters
               ? film.characters.map((character) => (
-                  <li className="character" key={character.id} onClick={() => handleCharacterClick(character.id)}>
+                  <li
+                    className="character"
+                    key={character.id}
+                    onClick={() => handleCharacterClick(character.id)}
+                  >
                     {character.name}
                   </li>
                 ))
@@ -90,4 +77,5 @@ function Films() {
     </>
   );
 }
+
 export default Films;

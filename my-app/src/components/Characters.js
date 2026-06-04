@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+import { api } from "../api";
 
 function Characters() {
-    let [charList, setCharList] = useState([]);
-    let navigate = useNavigate();
+  let [charList, setCharList] = useState([]);
+  let navigate = useNavigate();
 
-    let data_url = "/api/characters";
+  const fetchCharacters = async () => {
+    const data = await api("/characters");
+    setCharList(data);
+  };
 
-    const fetchCharacters = () => {
-        fetch(data_url)
-        .then((res) => res.json())
-        .then((charList) => {
-            setCharList(charList);
-        });
-    };
-
-    useEffect(fetchCharacters, []);
+  useEffect(() => {
+    fetchCharacters();
+  }, []);
 
   function handleClick(id) {
     navigate(`/characters/${id}`);
@@ -33,4 +31,5 @@ function Characters() {
     </>
   );
 }
+
 export default Characters;
