@@ -10,7 +10,10 @@
 .env.development.local
 .env.test.local
 .env.production.local
+<<<<<<< HEAD
 *.log
+=======
+>>>>>>> d099cf0 (improved gitignore)
 *.env
 .env.*.local
 
